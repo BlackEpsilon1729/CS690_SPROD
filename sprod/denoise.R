@@ -15,7 +15,7 @@ option_list = list(
               default=NA,type = 'character',
               help="Extracted image features"),
   make_option(c("-n", "--numberPC"), action="store",
-              default = -1,type = 'double',
+              default = 300,type = 'double',
               help="# Number of PCs to use. positive integers. by default set to -1 to use the number of PCs the same as the numebr of features"),
   make_option(c("-x","--umap"),action="store_true",dest = "umap",
               default = FALSE,type = "logical",
@@ -63,7 +63,8 @@ opt = parse_args(OptionParser(option_list=option_list))
 counts_fn <- opt$Exp
 spot_meta_fn <- opt$Cspot
 image_features_fn <- opt$ImageFeature
-N_PC=opt$numberPC
+#N_PC=opt$numberPC
+N_PC = 300
 diagnose = opt$diagnose
 um =opt$umap
 R_ratio=opt$Rratio # Spot neighborhood radius ratio, 0-1, radius=R*min(xmax-xmin,ymax-ymin)
@@ -151,10 +152,11 @@ if (um) {
   IF=umap::umap(IF)$layout
   cat("IF: UMAP done!\n\n")
 } else {
+  cat(N_PC)
     cat('Image features preprocessing: PCA...\n\n')
-    if (N_PC > 0) {
+    if (N_PC > 0) {print("I am")
       IF = prcomp(IF)$x[,1:min(N_PC,dim(IF)[2])]
-    } else {
+    } else {print("here")
       IF=prcomp(IF)$x[,1:dim(IF)[2]]
     }
 }

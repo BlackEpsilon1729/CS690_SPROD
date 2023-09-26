@@ -1,9 +1,9 @@
 """
 A convinient function to wrap all necessary processed in Sprod. Minimal data processing is required.
-A 'Counts.txt' and a 'Spot_metadata.csv' is required to run this script.
+A 'Counts.txt' and a 'Spotmeta.csv' is required to run this script.
 Also, if the input folder contains a image tif file, it will be used as the input matching
 image for feature extraction. Both files have rows as spots and with the same order.
-For data with matching image, the "Spot_metadata.csv" must have a "Spot_radius"
+For data with matching image, the "Spotmeta.csv" must have a "Spot_radius"
 column for spot features, or "Row" and "Col" columns for block features.
 
 Dependency
@@ -304,18 +304,18 @@ if __name__ == "__main__":
         # check if the input path have an tif image, if not, make a pseudo image.
         num_tifs = len([x for x in os.listdir(input_path) if x[-4:] == ".tif"])
         if num_tifs == 1:
-            logging.info(
-                "Extracting intensity and texture features from matching {} image".format(
-                    img_type.upper()
-                )
-            )
-            _ = extract_img_features(input_path, img_type, input_path)
+            # logging.info("Yayyy!!!!.")
+            logging.info("Extracting intensity and texture features from matching {} image".format(img_type.upper()))
+            # _ = extract_img_features(input_path, img_type, input_path)
+            # logging.info("Yayyy!!!!.")
         elif num_tifs == 0:
             logging.info("Use spot cluster probability as pseudo image features")
             cts_fn = os.path.join(input_path, "Counts.txt")
             spots_fn = os.path.join(input_path, "Spot_metadata.csv")
+          
             dp_script_path = os.path.join(sprod_path, "dirichlet_process_clustering.R")
             make_pseudo_img(cts_fn, spots_fn, input_path, "dp", dp_script_path)
+            logging.info("Yayy1!!")
             pseudo_img_feature_fn = os.path.join(
                 input_path, "pseudo_image_features.csv"
             )
@@ -324,6 +324,7 @@ if __name__ == "__main__":
                 "More than one images are present. Please remove the unwanted ones."
             )
             raise ValueError()
+        logging.info("Yayyy!!!!.")
 
         # When the input_type is batch, will run subsampling process.
         if input_type == "batch":
@@ -333,19 +334,19 @@ if __name__ == "__main__":
                 input_path,
                 "{}_level_{}_features.csv".format(*image_feature_type.split("_")),
             )
-            if not os.path.exists(feature_fn):
-                if custom_features_fn is not None:
-                    feature_fn = custom_features_fn
-                    print(
-                        "Using custom features."
-                    )
-                elif os.path.exists(pseudo_img_feature_fn):
-                    feature_fn = pseudo_img_feature_fn
-                    print(
-                        "Image derived features not found, will use pseudo image features."
-                    )
-                else:
-                    raise FileNotFoundError('Input features cannot found!')
+            # if not os.path.exists(feature_fn):
+            #     if custom_features_fn is not None:
+            #         feature_fn = custom_features_fn
+            #         print(
+            #             "Using custom features."
+            #         )
+            #     elif os.path.exists(pseudo_img_feature_fn):
+            #         feature_fn = pseudo_img_feature_fn
+            #         print(
+            #             "Image derived features not found, will use pseudo image features."
+            #         )
+            #     else:
+            #         raise FileNotFoundError('Input features cannot found!')
                 
             if not os.path.exists(intermediate_path):
                 os.makedirs(intermediate_path)
@@ -371,7 +372,8 @@ if __name__ == "__main__":
         for j, patch in enumerate(sorted(patches)):
             cts_fn = os.path.join(input_path, patch + "_Counts.txt")
             meta_fn = os.path.join(input_path, patch + "_Spot_metadata.csv")
-            feature_fn = os.path.join(input_path, patch + "_F.csv")
+            feature_fn = os.path.join(input_path, patch + "_features.csv")
+
             if not (
                 os.path.exists(cts_fn)
                 == os.path.exists(meta_fn)
@@ -386,17 +388,19 @@ if __name__ == "__main__":
     else:
         logging.info("Sprod-ready data format is single.")
         cts_fn = os.path.join(input_path, "Counts.txt")
+        # print("dead1")
         meta_fn = os.path.join(input_path, "Spot_metadata.csv")
-        feature_fn = os.path.join(
-            input_path,
-            "{}_level_{}_features.csv".format(*image_feature_type.split("_")),
-        )
+        # print("dead2")
+        feature_fn = os.path.join(input_path,"{}_level_{}_features.csv".format(*image_feature_type.split("_")), )
+        # print("dead")
 
         # always tries to use image derived features, then pseudo images.
         if not os.path.exists(feature_fn):
+            # pseudo_img_feature_fn = os.path.join(
+            #     input_path, "pseudo_image_features.csv"
+            # )
             pseudo_img_feature_fn = os.path.join(
-                input_path, "pseudo_image_features.csv"
-            )
+                input_path, "features.csv")
             if custom_features_fn is not None:
                 feature_fn = custom_features_fn
                 print("Using custom features.")
@@ -406,6 +410,7 @@ if __name__ == "__main__":
                     "Image derived features not found, will use pseudo image features."
                 )
             else:
+                logging.info("Dead peeps.")
                 raise FileNotFoundError("Image features not found.")
         else:
             logging.info("Image derived features found, will use these.")

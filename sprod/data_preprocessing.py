@@ -6,6 +6,7 @@ from scipy.io import mmread
 import os
 import argparse
 import json
+import pickle
 
 # parsing arguments
 
@@ -53,30 +54,35 @@ parser.add_argument(
 def data_preprocessing(input_type, output_path, cts_fn = None, spots_fn = None):
     if input_type == 'visium':
         fn_dir = args.visium_folder
-        # Process counts files.
         os.chdir(fn_dir)
-        mtx_fn = [x for x in os.listdir() if ('filtered' in x) and ('.gz') in x][0]
-        os.system("tar -xzvf {}".format(mtx_fn))
+    
         mtx = mmread(
-            os.path.join('filtered_feature_bc_matrix', 'matrix.mtx.gz')
-        )
-        genes = pd.read_csv(
-            os.path.join('filtered_feature_bc_matrix', 'features.tsv.gz'), 
-            sep='\t', header=None,
-            ).iloc[:,1].values
-        barcodes = pd.read_csv(
-            os.path.join('filtered_feature_bc_matrix', 'barcodes.tsv.gz'),
-            sep='\t', header=None).iloc[:,0].values
+            os.path.join('filtered_feature_bc_matrix', 'matrix.mtx.gz') )
+        # genes = pd.read_csv(
+        #     os.path.join('filtered_feature_bc_matrix', 'features.tsv.gz'), 
+        #     sep='\t', header=None,
+        #     ).iloc[:,1].values
+        # barcodes = pd.read_csv(
+        #     os.path.join('filtered_feature_bc_matrix', 'barcodes.tsv.gz'),
+        #     sep='\t', header=None).iloc[:,0].values
+        with open(os.path.join('filtered_feature_bc_matrix', 'barcodes.pkl'),"rb") as file:
+            genes = pickle.load(file)
+        file.close()
+        with open(os.path.join('filtered_feature_bc_matrix', 'features.pkl'),"rb") as file:
+            barcodes = pickle.load(file)
+        file.close()
         mtx = mtx.toarray()
         cts = pd.DataFrame(mtx, columns=barcodes,index=genes)
         cts = cts.groupby(cts.index).mean().T
+        temp = cts
+        
 
         '''
         extract image metadata, and figure out spot radius.
         '''
         img_fn = [x for x in os.listdir() if '.tif' in x][0]
-        spatial_fn = [x for x in os.listdir() if 'spatial.tar.gz' in x][0]
-        os.system("tar -xzvf {}".format(spatial_fn))
+        # spatial_fn = [x for x in os.listdir() if 'spatial.tar.gz' in x][0]
+        # os.system("tar -xzvf {}".format(spatial_fn))
         img_json = [x for x in os.listdir('spatial') if '.json' in x][0]
         img_meta = pd.read_csv(
             'spatial/tissue_positions_list.csv', index_col=0, header=None)
@@ -88,6 +94,7 @@ def data_preprocessing(input_type, output_path, cts_fn = None, spots_fn = None):
         except:
             radius = int(img_json['spot_diameter_fullres']// 2)
         
+        print(radius)
         # Reformat image metadata.
         img_meta = img_meta.iloc[:,1:]
         img_meta.columns = ['Row','Col','X','Y']
@@ -107,10 +114,20 @@ def data_preprocessing(input_type, output_path, cts_fn = None, spots_fn = None):
         raise ValueError('Input dataset type must be either visium or slideseq')
 
     # Align data and output
-    cm_cells = [x for x in img_meta.index if x in cts.index]
-    cts = cts.loc[cm_cells]
-    cts.to_csv(os.path.join(output_path,'Counts.txt'),sep='\t')
+    # for i in range(10):
+    #     print(img_meta.index[i])
+    #     print(cts.index[i])
+    #     print(cts.columns[i])
+    #     print("--------") 
+    
+    cm_cells = [x for x in img_meta.index if x in cts.columns]
+    print(len(cm_cells))
+    cts = cts[cm_cells]
+    print(len(cts))
+    cts.T.to_csv(os.path.join(output_path,'Counts.txt'),sep='\t')
+    # temp.to_csv('cts.csv')
     img_meta = img_meta.loc[cm_cells]
+    print(len(img_meta))
     img_meta.to_csv(os.path.join(output_path,'Spot_metadata.csv'))
 
 if __name__ == '__main__':
@@ -123,7 +140,7 @@ if __name__ == '__main__':
     if os.path.exists(os.path.join(output_path,'Counts.txt')):
         print("Dataset is already processed in {}".format(output_path))
     else:
-        if input_type == 'visium':
+        if input_type == 'visium':  
             data_preprocessing(input_type, output_path)
         else:
             cts_fn = args.slideseq_counts

@@ -114,9 +114,18 @@ def make_pseudo_img(
         if cts.shape[1] > 3000: # targeted sequencing libarary
             means, disp = cal_norm_dispersion(cts)
             hvg = cts.columns[(means>0.01) & (disp>0.01)]
+            # print("where")
+
         else:
+            # print("here"
             hvg = cts.columns
         cts_hvg = cts[hvg]
+        # print("Before scaling:")
+        # print(cts_hvg.head())  # Print a few rows to inspect the data
+        # cts_hvg.loc[:,:] = scale(np.log2(cts_hvg+1))
+        # print("After scaling:")
+        # print(cts_hvg.head())  # Print a few rows after scaling
+
         cts_hvg.loc[:,:] = scale(np.log2(cts_hvg+1))
         spot_meta = spot_meta.loc[cts_hvg.index]
 
